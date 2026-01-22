@@ -7,5 +7,5 @@ input_value = input("Please enter a floating point number")
 float_value = float(input_value)
 squared_value = float_value ** 2
 
-print ("you entered', float_value")
-print ("The squared value is (squared_value)")
+print ("you entered", round(float_value, 2))
+print ("The squared value is", round(squared_value, 2))
