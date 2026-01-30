@@ -4,17 +4,17 @@
 
 def midpoint(num1, num2):
     """Calculate the midpoint between two numbers."""
-    mid = {num1 + num2 / }
+    mid = (num1 + num2) / 2
     return mid
 
-def sqrt(number)
+def sqrt(number):
     """Calculate the square root of a number."""
     if number < 0:
       return None
-      return number ** 0.5
+    return number ** 0.5
     
     def exponent (base, exp, precision):
-        """Calculate the exponent of a base raised to exp."""
+        """Calculate the exponent of a base to a given exponent."""
         result = base ** exp
         rounded_result = round(result, precision)
         return rounded_result
