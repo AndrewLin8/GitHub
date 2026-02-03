@@ -10,3 +10,11 @@ full_name = first + " " + middleIn + ". " + last
 print("Your full name is:", full_name)
 
 print(f"Your full name is: {first} {middleIn}. {last} ")
+
+print("Your full name is: %s %s. %s" % (first, middleIn, last))
+
+print("Your full name is: {} {}. {}".format(first, middleIn, last))
+
+print("Your full name is:", " ".join([first, middleIn + ".", last]))
+
+print("Your full name is: {} {}. {}".format(*[first, middleIn, last]))
