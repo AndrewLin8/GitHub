@@ -1,4 +1,4 @@
-# parts through the portion of an email address
+# parse through the portion of an email address
 
 #method 1: using split() to separate username an domain
 email = input("Enter your email address: ")
