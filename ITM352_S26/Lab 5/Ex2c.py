@@ -1,7 +1,7 @@
 trip_duration = [1.1, 0.8, 2.5, 2.6]
 trip_fares = [6.25, 5.25, 10.50, 8.05]
 
-trips = dict(zip(trip_duration, fares=trip_fares))
+trips = {'miles': trip_duration, 'fares': trip_fares}
 print(trips)
 
 trip_num = input("What trip do you want) [1-4]: ")
