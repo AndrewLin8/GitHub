@@ -1,11 +1,14 @@
-n = int(input("Enter a number: "))
+searchMe = [2, 5, 7, 11, 15, 22, 27, 30, 34, 41, 55, 57, 58, 60, 77]
 
-for i in range(1, n + 1):
-    if i % 15 == 0:
-        print('FizzBuzz')
-    elif i % 3 == 0:
-        print('Fizz')
-    elif i % 5 == 0:
-        print('Buzz')
-    else:
-        print(i)
+number = int(input("Enter a number to search for: "))
+
+found = False
+for num in searchMe:
+    if num == number:
+        found = True
+        break
+
+if found:
+    print("Found!")
+else:
+    print("Not Found!")
