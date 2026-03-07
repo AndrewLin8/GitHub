@@ -1,14 +1,13 @@
+# Save and update quiz score to the history file with a timestamp and category.
 def save_score_to_history(category, score, total_questions, filename="quiz_scores.txt"):
-    #Save quiz score to the history file including the timestamp and category.
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     percentage = (score / total_questions) * 100 if total_questions > 0 else 0
     
     with open(filename, 'a') as file:
         file.write(f"{timestamp},{category},{score}/{total_questions},{percentage:.1f}%\n")
 
-
+# Display the score history from the file.
 def display_score_history(filename="quiz_scores.txt"):
-    #Display the score history from the file.
     import os
     
     if not os.path.exists(filename):

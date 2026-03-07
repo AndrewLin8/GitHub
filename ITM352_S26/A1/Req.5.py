@@ -1,29 +1,28 @@
-def display_categories(questions):
-    # Display available quiz categories with numbered options.
-    print("\n" + "="*50)
-    print("Available Quiz Categories:")
-    print("="*50)
-    categories = list(questions.keys())
-    for i, category in enumerate(categories, 1):
-        num_questions = len(questions[category])
-        print(f"{i}. {category} ({num_questions} questions)")
-    print("="*50)
+# Create the categories the user can select from for the quiz.
+def display_categories():
+    print("Quiz Categories:")
+    print("1. Science")
+    print("2. Math")
+    print("3. English")
+    print("4. History")
+    print("5. Art")
+   
 
-
-def select_category(questions):
-    # Ask user to select a quiz category from the list.
-    categories = list(questions.keys())
+# Allow the user to choose which category they want.
+def select_category():
+    categories = ["Science", "Math", "English", "History", "Art"]
     
     while True:
-        display_categories(questions)
+        display_categories()
+        choice = input("\nSelect a category (1-5): ").strip()
+        
         try:
-            choice = input("Enter the number of your chosen category (or 'q' to quit): ").strip().lower()
-            if choice == 'q':
-                return None
             choice_num = int(choice)
-            if 1 <= choice_num <= len(categories):
-                return categories[choice_num - 1]
+            if 1 <= choice_num <= 5:
+                selected = categories[choice_num - 1]
+                print(f"\nYou selected: {selected}")
+                return selected
             else:
-                print(f"Invalid choice. Please enter a number between 1 and {len(categories)}.")
+                print("Invalid. Enter 1-5.")
         except ValueError:
-            print(f"Invalid input. Please enter a number between 1 and {len(categories)}, or 'q' to quit.")
+            print("Invalid. Enter a number 1-5.")
