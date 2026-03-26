@@ -1,5 +1,3 @@
-# Open names.txt, append Andrew Lin, print full contents, and print total names.
-
 from pathlib import Path
 
 file_path = Path(__file__).with_name("names.txt")
