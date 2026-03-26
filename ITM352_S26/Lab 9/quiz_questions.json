@@ -1,0 +1,32 @@
+[
+    {
+        "question": "What is the airspeed of an unladen swallow in miles/hr?",
+        "options": [
+            "12",
+            "15",
+            "20",
+            "25"
+        ],
+        "answer": "12"
+    },
+    {
+        "question": "What is the capital of Texas?",
+        "options": [
+            "Austin",
+            "Dallas",
+            "Houston",
+            "San Antonio"
+        ],
+        "answer": "Austin"
+    },
+    {
+        "question": "The Last Supper was painted by which artist?",
+        "options": [
+            "Leonardo da Vinci",
+            "Michelangelo",
+            "Raphael",
+            "Donatello"
+        ],
+        "answer": "Leonardo da Vinci"
+    }
+]
