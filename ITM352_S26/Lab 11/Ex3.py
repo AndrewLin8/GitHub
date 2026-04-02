@@ -27,14 +27,14 @@ if state_col is None:
     raise KeyError(f"Could not find a state column. Tried: {state_col_candidates}")
 
 # Add sub-columns showing average sales by state and by sale type 
-pivot_table = pd.pivot_table(
-    df,
-    index='sales_region',
-    values='sales',
-    columns=[state_col, 'order_type'],
-    aggfunc='mean',
-    margins=True,
-    margins_name='Average Sales'
+pivot_table = pd.pivot_table(df,
+                             index='sales_region',
+                             values='sales',
+                             columns=[state_col, 'order_type'],
+                             aggfunc='mean',
+                             fill_value = 0,
+                             margins=True,
+                             margins_name='Average Sales'
 )
 
 print(pivot_table)
