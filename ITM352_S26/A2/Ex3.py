@@ -51,7 +51,7 @@ def display_initial_row(dataframe):
         return
     elif user_input == 'all':
         print(dataframe)
-    elif user_input.isdigit and 1 <= int(user_input) <= len(dataframe):
+    elif user_input.isdigit() and 1 <= int(user_input) <= len(dataframe):
         print(dataframe.head(int(user_input)))
         print(f"Displaying the first {user_input} rows.")
     else:
@@ -65,16 +65,33 @@ def exit_program(dataframe):
     exit(0)
     
 def display_menu(dataframe):
-    menu_options = {
+    menu_options = [
         ("show the first n rows of sales data", display_initial_row),
         ("Show the number of employees by region", show_employees_by_region),
         ("Exit", exit_program)
-    }
+    ]
+
+    print("Available options:")
+    for i, (description, _) in enumerate(menu_options, start=1):
+        print(f"{i}. {description}")
+
+    try:
+        menu_len = len(menu_options)
+        choice = int(input(f"Enter your choice (1-{menu_len}): "))
+        if 1 <= choice <= menu_len:
+            _, action = menu_options[choice - 1]
+            action(dataframe)
+        else:
+            print("Invalid choice. Please enter a number corresponding to the menu options.")
+
+    except ValueError:
+        print("Invalid input. Please enter a number corresponding to the options.")
 
 # Call load csv to load the data and print the first 10 rows.
 filename = "https://drive.google.com/file/d/1Fv_vhoN4sTrUaozFPfzr0NCyHJLIeXEA/view?usp=sharing"
 #filename = "sales_data_test.csv"
 sales_data = load_csv(filename)
+
 
 # Run the main processing loop
 def main():
