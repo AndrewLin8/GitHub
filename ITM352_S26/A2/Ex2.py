@@ -1,11 +1,14 @@
 # Read in a file from a URL and use a local CSV file with the first 10 rows.
 
+
 import time
 
 import pandas as pd
 import numpy as np
 import pyarrow
 
+
+pd.set_option('display.max_columns', None) # Show all columns in the script
 
 
 def load_csv(filepath):
@@ -19,7 +22,8 @@ def load_csv(filepath):
         print(f"number of rows: {len(df)}")
         print(f"number of columns: {len(df.columns)}")
         df['order_date'] = pd.to_datetime(df['order_date'], format='%Y-%m-%d', errors='coerce') # Convert order_date to datetime format, coerce errors to NaT
-        df.fillna(0, inplace=True) # Fill missing values with 0
+  #      df.fillna(0, inplace=True) # Fill missing values with 0
+        df['sales'] = df['quantity'] * df['unit_price'] # Create a new column for sales
 
         required_column = ['quantity', 'unit_price', 'order_date']
         # Check if required columns are present
@@ -40,7 +44,7 @@ filename = "https://drive.google.com/file/d/1Fv_vhoN4sTrUaozFPfzr0NCyHJLIeXEA/vi
 #filename = "sales_data_test.csv"
 sales_data = load_csv(filename)
 
-if sales_data is not None:
-    print(sales_data.head(10))
+
+print(sales_data.head(10))
     
 
