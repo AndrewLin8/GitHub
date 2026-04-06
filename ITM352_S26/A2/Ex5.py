@@ -148,7 +148,7 @@ def show_employees_by_region(dataframe):
     print(pivot_table)
     return
 
-
+# Create a pivot table generator. (AI helped with this)
 def create_custom_pivot_table(dataframe):
     print("\n--- Pivot Table Generator ---")
 
@@ -163,7 +163,6 @@ def create_custom_pivot_table(dataframe):
         '2': 'customer_type'
     }
 
-    # Use 'sales' in the dataframe as sale_price equivalent.
     value_choices = {
         '1': 'quantity',
         '2': 'sales'
@@ -186,7 +185,7 @@ def create_custom_pivot_table(dataframe):
         if any(key not in choices for key in selected_keys):
             return None
 
-        # Remove duplicates while preserving order
+        # Remove duplicates while saving the order
         selected_fields = []
         for key in selected_keys:
             field_name = choices[key]
