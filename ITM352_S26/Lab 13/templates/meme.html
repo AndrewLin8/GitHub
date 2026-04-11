@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <title>Memes'R'Us</title>
+   <meta charset="UTF-8" name="viewport" content="width=device-width, initial-scale=0.8">
+   <meta http-equiv="refresh" content="10; url=http://127.0.0.1:5000" />
+   <style>
+      body {
+         font-family: Arial, sans-serif;
+         text-align: center;
+         margin: 0;
+         padding: 2rem;
+         background: #f7f7fb;
+         color: #222;
+      }
+
+      .card {
+         max-width: 700px;
+         margin: 0 auto;
+         background: white;
+         border-radius: 16px;
+         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+         padding: 1.5rem;
+      }
+
+      img {
+         max-width: 100%;
+         height: auto;
+         border-radius: 12px;
+         margin-top: 1rem;
+      }
+
+      .source {
+         margin-top: 1rem;
+         font-size: 1.1rem;
+      }
+   </style>
+</head>
+<body>
+   <div class="card">
+      <h1>{{ meme_title }}</h1>
+      {% if meme_image %}
+      <img src="{{ meme_image }}" alt="{{ meme_title }}">
+      {% else %}
+      <p>Sorry, the meme could not be loaded right now.</p>
+      {% endif %}
+      <div class="source">Source: r/{{ meme_source }}</div>
+   </div>
+</body>
+</html>

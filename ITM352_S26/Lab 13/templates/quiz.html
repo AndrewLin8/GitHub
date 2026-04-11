@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6fb;
+            margin: 0;
+            padding: 2rem;
+            color: #222;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        }
+
+        .question {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .choices {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .choices li {
+            margin: 0.5rem 0;
+        }
+
+        button {
+            margin-top: 1rem;
+            padding: 0.75rem 1.25rem;
+            border: none;
+            border-radius: 8px;
+            background: #2563eb;
+            color: white;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Quiz Game Skeleton</h1>
+        <p>This page is ready for quiz logic, scoring, and answer submission.</p>
+
+        <form action="/score" method="get">
+            {% for item in questions %}
+            {% set question_number = loop.index %}
+            <div class="question">
+                <h2>{{ question_number }}. {{ item.question }}</h2>
+                <ul class="choices">
+                    {% for choice in item.choices %}
+                    <li>
+                        <label>
+                            <input type="radio" name="q{{ question_number }}" value="{{ choice }}">
+                            {{ choice }}
+                        </label>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endfor %}
+
+            <button type="submit">Submit Answers</button>
+        </form>
+    </div>
+</body>
+</html>
