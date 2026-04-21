@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Question Feedback</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #eef2ff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .card {
+            background: #fff;
+            padding: 1.75rem;
+            width: min(92vw, 520px);
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+            text-align: center;
+        }
+        .correct {
+            color: #047857;
+            font-weight: 700;
+        }
+        .incorrect {
+            color: #b91c1c;
+            font-weight: 700;
+        }
+        .btn {
+            display: inline-block;
+            margin-top: 1rem;
+            background: #2563eb;
+            color: white;
+            text-decoration: none;
+            padding: 0.65rem 1.1rem;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        {% if is_correct %}
+            <h2 class="correct">Correct!</h2>
+            <p>Your answer was right.</p>
+        {% else %}
+            <h2 class="incorrect">Incorrect</h2>
+            <p>You selected: {{ selected_answer if selected_answer else 'No answer selected' }}</p>
+            <p>The correct answer is: <strong>{{ correct_answer }}</strong></p>
+        {% endif %}
+
+        {% if is_last_question %}
+            <a class="btn" href="{{ url_for('result') }}">See Final Score</a>
+        {% else %}
+            <a class="btn" href="{{ url_for('quiz') }}">Next Question</a>
+        {% endif %}
+    </div>
+</body>
+</html>

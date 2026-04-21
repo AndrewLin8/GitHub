@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #eef2ff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .card {
+            background: #fff;
+            width: min(92vw, 560px);
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+        }
+        .option {
+            display: block;
+            margin: 0.55rem 0;
+            padding: 0.6rem;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        button {
+            margin-top: 1rem;
+            border: 0;
+            background: #2563eb;
+            color: white;
+            padding: 0.65rem 1rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        .meta {
+            color: #4b5563;
+            font-size: 0.95rem;
+        }
+        .hint-container {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            border-radius: 6px;
+            display: none;
+        }
+        .hint-container.show {
+            display: block;
+        }
+        .hint-text {
+            color: #92400e;
+            font-style: italic;
+        }
+        .hint-btn {
+            background: #f59e0b;
+            margin-top: 0;
+        }
+        .hint-btn:hover:not(:disabled) {
+            background: #d97706;
+        }
+        .hint-used-msg {
+            color: #7c2d12;
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+        .button-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        .button-group button {
+            flex: 1;
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <p class="meta">Question {{ question_number }} of {{ total_questions }}</p>
+        <h2>{{ question }}</h2>
+        <form method="POST" id="quizForm">
+            {% for option in options %}
+                <label class="option">
+                    <input type="radio" name="answer" value="{{ option }}"> {{ option }}
+                </label>
+            {% endfor %}
+            
+            <div class="button-group">
+                <button id="submitBtn" type="submit" disabled>Submit Answer</button>
+                <button id="hintBtn" type="button" class="hint-btn">💡 Hint</button>
+            </div>
+        </form>
+
+        <div id="hintDisplay" class="hint-container" data-hint-used="{{ hint_used|lower }}">
+            <div class="hint-text">{{ hint }}</div>
+            {% if hint_used %}
+                <div class="hint-used-msg">✓ Hint used for this question</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        const options = document.querySelectorAll('input[name="answer"]');
+        const submitBtn = document.getElementById('submitBtn');
+        const hintBtn = document.getElementById('hintBtn');
+        const hintDisplay = document.getElementById('hintDisplay');
+        const hintUsed = hintDisplay.getAttribute('data-hint-used') === 'true';
+
+        // Handle option selection
+        options.forEach((option) => {
+            option.addEventListener('change', () => {
+                options.forEach((radio) => {
+                    if (!radio.checked) {
+                        radio.disabled = true;
+                    }
+                });
+                submitBtn.disabled = false;
+            });
+        });
+
+        // Handle hint button
+        hintBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            if (hintUsed) {
+                alert('You have already used the hint for this question!');
+                return;
+            }
+            
+            fetch('/use_hint', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    hintDisplay.classList.add('show');
+                    hintBtn.disabled = true;
+                    hintBtn.textContent = '✓ Hint used';
+                });
+        });
+
+        // Show hint initially if already used
+        if (hintUsed) {
+            hintDisplay.classList.add('show');
+            hintBtn.disabled = true;
+            hintBtn.textContent = '✓ Hint used';
+        }
+    </script>
+</body>
+</html>
