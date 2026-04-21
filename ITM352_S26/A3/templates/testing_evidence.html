@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Testing Evidence</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f3f4f6;
+            margin: 0;
+            padding: 1.25rem;
+        }
+        .container {
+            max-width: 980px;
+            margin: 0 auto;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+        }
+        h1, h2 {
+            margin-top: 0;
+        }
+        .meta {
+            color: #4b5563;
+            margin-bottom: 1rem;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 0.6rem;
+        }
+        .summary-item {
+            background: #eff6ff;
+            border-left: 4px solid #2563eb;
+            border-radius: 6px;
+            padding: 0.65rem;
+        }
+        .event-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.92rem;
+        }
+        .event-table th,
+        .event-table td {
+            border-bottom: 1px solid #e5e7eb;
+            text-align: left;
+            vertical-align: top;
+            padding: 0.55rem;
+        }
+        .event-table th {
+            background: #f9fafb;
+        }
+        .btn {
+            display: inline-block;
+            text-decoration: none;
+            background: #2563eb;
+            color: white;
+            border-radius: 8px;
+            padding: 0.6rem 1rem;
+            font-weight: 600;
+        }
+        .empty {
+            color: #6b7280;
+            font-style: italic;
+        }
+        code {
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>Testing Evidence</h1>
+            <p class="meta">
+                Runtime activity is logged to <strong>{{ evidence_file_name }}</strong> while the app is used.
+                This page shows the most recent entries.
+            </p>
+            <a class="btn" href="{{ url_for('home') }}">Back to Home</a>
+        </div>
+
+        <div class="card">
+            <h2>Event Summary</h2>
+            {% if event_counts %}
+                <div class="summary-grid">
+                    {% for event_name, count in event_counts.items() %}
+                        <div class="summary-item">
+                            <strong>{{ event_name }}</strong><br>
+                            Count: {{ count }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="empty">No evidence yet. Use the app to generate test records.</p>
+            {% endif %}
+        </div>
+
+        <div class="card">
+            <h2>Recent Event Log</h2>
+            {% if evidence_entries %}
+                <table class="event-table">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Event</th>
+                            <th>User</th>
+                            <th>Path</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for entry in evidence_entries %}
+                            <tr>
+                                <td>{{ entry.timestamp }}</td>
+                                <td>{{ entry.event }}</td>
+                                <td>{{ entry.user_name or 'Guest' }}</td>
+                                <td>{{ entry.path }}</td>
+                                <td><code>{{ entry.details }}</code></td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="empty">No events recorded yet.</p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

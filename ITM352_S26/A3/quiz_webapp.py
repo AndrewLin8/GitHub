@@ -6,7 +6,8 @@ import os
 app = Flask(__name__)
 app.secret_key = "quiz-demo-secret-key"
 
-USER_DATA_FILE = "user_data.json"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+USER_DATA_FILE = os.path.join(BASE_DIR, "user_data.json")
 
 
 def load_questions():
@@ -47,6 +48,30 @@ def save_user_data(data):
         json.dump(data, f, indent=2)
 
 
+def get_user_name(user_id):
+    """Safely get user name by ID."""
+    user_data = load_user_data()
+    if user_id and user_id in user_data:
+        return user_data[user_id].get("name")
+    return None
+
+
+def log_testing_event(event_type, details=None):
+    """Print runtime event record to terminal as testing evidence."""
+    user_id = session.get("user_id")
+    event_record = {
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "event": event_type,
+        "path": request.path,
+        "method": request.method,
+        "user_id": user_id,
+        "user_name": get_user_name(user_id),
+        "client_ip": request.remote_addr,
+        "details": details or {},
+    }
+    print(f"[APP_USAGE] {json.dumps(event_record)}", flush=True)
+
+
 def setup_quiz():
     """Initialize quiz state in session."""
     session["question_index"] = 0
@@ -58,6 +83,7 @@ def setup_quiz():
 def home() -> str:
     user_id = session.get("user_id")
     user_data = load_user_data()
+    log_testing_event("home_viewed")
     
     if user_id and user_id in user_data:
         user = user_data[user_id]
@@ -77,6 +103,7 @@ def name_entry():
             save_user_data(user_data)
             
             session["user_id"] = user_id
+            log_testing_event("user_registered", {"name": name})
             return redirect(url_for('restart'))
         return render_template("name_entry.html", error="Please enter a valid name.")
     
@@ -105,6 +132,15 @@ def quiz():
 
         session["question_index"] = question_index + 1
         is_last_question = session["question_index"] >= len(questions)
+        log_testing_event(
+            "question_answered",
+            {
+                "question_number": question_index + 1,
+                "selected_answer": selected_answer,
+                "correct_answer": current_question["answer"],
+                "is_correct": is_correct,
+            },
+        )
 
         return render_template(
             "question_result.html",
@@ -144,6 +180,8 @@ def result():
             "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         })
         save_user_data(user_data)
+
+    log_testing_event("quiz_completed", {"score": score, "total_questions": total_questions})
     
     return render_template('result.html', score=score, total_questions=total_questions)
 
@@ -157,6 +195,7 @@ def use_hint():
     if question_index not in hints_used:
         hints_used.append(question_index)
         session["hints_used"] = hints_used
+        log_testing_event("hint_used", {"question_number": question_index + 1})
     
     return {"status": "hint_used"}
 
@@ -168,12 +207,14 @@ def restart():
         return redirect(url_for('name_entry'))
     
     setup_quiz()
+    log_testing_event("quiz_restarted")
     return redirect(url_for('quiz'))
 
 
 @app.route('/logout')
 def logout():
     """Clear user session."""
+    log_testing_event("user_logged_out")
     session.clear()
     return redirect(url_for('home'))
 
