@@ -31,10 +31,5 @@
             </div>
             <button type="submit" style="background-color: #28a745;">{% if has_api_secret %}Update{% else %}Save{% endif %} Credentials</button>
         </form>
-        {% if has_api_secret %}
-        <form method="POST" action="{{ url_for('import_exchange') }}" style="margin-top:1rem;">
-            <button type="submit" style="background-color: #007bff;">Import holdings from linked exchange</button>
-        </form>
-        {% endif %}
     </div>
 {% endblock %}

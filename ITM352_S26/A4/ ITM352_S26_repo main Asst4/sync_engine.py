@@ -134,7 +134,7 @@ def sync_crypto_prices():
             except Exception as e:
                 print(f"Error occurred during sync: {e}")
             
-            time.sleep(30)  # Wait for 30 seconds before syncing again
+            time.sleep(10)  # Wait for 10 seconds before syncing again
 
 if __name__ == '__main__':
     sync_crypto_prices()
