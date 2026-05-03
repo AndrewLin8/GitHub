@@ -6,15 +6,15 @@ from datetime import datetime
 import os
 from __init__ import app, db
 from models import Crypto, User, PortfolioItem
-from security import encrypt_data
+from security import encrypt_data, decrypt_data
+import ccxt
 
 # Website pages
 @app.route('/')
 def index():
-    # Protect the route: redirect to login if the user is not authenticated
+    # Show a public homepage for anonymous visitors.
     if 'user_id' not in session:
-        flash('Please log in to view tracked cryptocurrencies.', 'error')
-        return redirect(url_for('login'))
+        return render_template('index.html', portfolio_items=[], alerts=[])
 
     # Fetch the portfolio items for the logged-in user
     user_id = session['user_id']
@@ -101,7 +101,7 @@ def delete_portfolio_item(item_id):
 @app.route('/api/portfolio_data')
 def portfolio_data():
     if 'user_id' not in session:
-        return jsonify({"error": "Not authenticated"}), 401
+        return jsonify({'portfolio_items': [], 'total_value': 0})
 
     user_id = session['user_id']
     portfolio_items = PortfolioItem.query.filter_by(user_id=user_id).all()
@@ -126,9 +126,6 @@ def portfolio_data():
 
 @app.route('/api/search_coins')
 def search_coins():
-    if 'user_id' not in session:
-        return jsonify({"error": "Not authenticated"}), 401
-
     query = request.args.get('query', '').strip()
     if not query:
         return jsonify([]) # Return empty list if no query
@@ -161,7 +158,7 @@ def register():
         # Create the new user and save to the database
         new_user = User(
             username=username, 
-            password_hash=generate_password_hash(password, method='pbkdf2:sha256')
+            password_hash=generate_password_hash(password)
         )
         db.session.add(new_user)
         db.session.commit()
@@ -221,3 +218,66 @@ def logout():
     session.clear()
     flash('You have been logged out.', 'success')
     return redirect(url_for('index'))
+
+
+@app.route('/import_exchange', methods=['POST'])
+def import_exchange():
+    """Imports holdings from the user's linked exchange (Binance) using ccxt and saved API keys."""
+    if 'user_id' not in session:
+        flash('Please log in to import holdings.', 'error')
+        return redirect(url_for('login'))
+
+    user = User.query.get(session['user_id'])
+    if not user.api_key or not user.encrypted_api_secret:
+        flash('Please save your API credentials in Settings before importing.', 'error')
+        return redirect(url_for('settings'))
+
+    # Decrypt secret
+    api_secret = decrypt_data(user.encrypted_api_secret)
+    if not api_secret:
+        flash('Failed to decrypt API secret. Re-enter your API credentials.', 'error')
+        return redirect(url_for('settings'))
+
+    try:
+        exchange = ccxt.binance({
+            'apiKey': user.api_key,
+            'secret': api_secret,
+            'enableRateLimit': True,
+        })
+        # Do not enable sandbox here — assume user API corresponds to desired environment
+        balances = exchange.fetch_balance()
+        totals = balances.get('total', {})
+
+        imported = 0
+        for symbol, amount in totals.items():
+            # Skip zero balances and non-numeric
+            try:
+                amt = float(amount or 0)
+            except Exception:
+                continue
+            if amt <= 0:
+                continue
+
+            # symbol is like 'BTC', try to find matching Crypto by symbol
+            crypto = Crypto.query.filter_by(symbol=symbol.upper()).first()
+            if not crypto:
+                # Create a minimal Crypto record; name uses lowercase id suitable for CoinGecko syncing
+                crypto = Crypto(name=symbol.lower(), symbol=symbol.upper())
+                db.session.add(crypto)
+                db.session.commit()
+
+            # Add or update PortfolioItem for this user
+            item = PortfolioItem.query.filter_by(user_id=user.id, crypto_id=crypto.id).first()
+            if item:
+                item.amount_owned = amt
+            else:
+                item = PortfolioItem(user_id=user.id, crypto_id=crypto.id, amount_owned=amt)
+                db.session.add(item)
+            imported += 1
+
+        db.session.commit()
+        flash(f'Imported {imported} holdings from exchange.', 'success')
+    except Exception as e:
+        flash(f'Failed to import holdings: {e}', 'error')
+
+    return redirect(url_for('settings'))
