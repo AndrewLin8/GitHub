@@ -32,3 +32,12 @@ class PortfolioItem(db.Model):
     amount_owned = db.Column(db.Float, default=0.0)
     target_price = db.Column(db.Float, nullable=True)
     crypto = db.relationship('Crypto')
+
+class PredictionVote(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    coin_symbol = db.Column(db.String(10), nullable=False)
+    vote_type = db.Column(db.String(10), nullable=False) # 'up' or 'down'
+    
+    # This unique constraint is to prevent double voting at the DB level
+    __table_args__ = (db.UniqueConstraint('user_id', 'coin_symbol', name='_user_coin_uc'),)

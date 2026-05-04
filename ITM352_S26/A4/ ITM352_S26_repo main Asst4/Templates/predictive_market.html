@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1 style="margin-bottom: 1.5rem;">Crypto Prediction Market</h1>
+    
+    <div style="margin-bottom: 2rem; position: relative;">
+        <label for="predictive-search"><strong>Search for a Coin to Analyze:</strong></label>
+        <input type="text" id="predictive-search" placeholder="e.g. BTC, ETH, SOL..." style="width: 100%; padding: 12px; margin-top: 5px; border-radius: 4px; border: 1px solid #ccc; font-size: 1rem;">
+        <div id="predictive-search-results" style="border: 1px solid #ccc; max-height: 200px; overflow-y: auto; display: none; background: white; position: absolute; width: 100%; z-index: 100; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 30px;">
+        
+        <div style="background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 id="market-title" style="margin: 0;">Market Trend: BTC/USDT</h3>
+                <span style="color: #666; font-size: 0.9rem;">Live Exchange Data (Binance)</span>
+            </div>
+            
+            <div id="tv-chart-container" style="height: 700px; width: 100%; border: 1px solid #eee; border-radius: 4px; overflow: hidden;">
+                <div class="tradingview-widget-container" style="height:100%;width:100%">
+                    <div id="tradingview_chart" style="height:100%;width:100%"></div>
+                    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+                    <script type="text/javascript">
+                    function loadMainChart(symbol) {
+                        new TradingView.widget({
+                            "autosize": true,
+                            "symbol": `BINANCE:${symbol.toUpperCase()}USDT`,
+                            "interval": "H",
+                            "timezone": "Etc/UTC",
+                            "theme": "light",
+                            "style": "1",
+                            "locale": "en",
+                            "toolbar_bg": "#f1f3f6",
+                            "enable_publishing": false,
+                            "hide_top_toolbar": false, 
+                            "hide_legend": false,      
+                            "save_image": false,
+                            "container_id": "tradingview_chart"
+                        });
+                    }
+                    // Initial load
+                    loadMainChart('BTC');
+                    </script>
+                </div>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 3rem;">
+            
+            <div style="background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; flex-direction: column; justify-content: center;">
+                <h3 style="margin-top: 0;">Community Prediction</h3>
+                <p style="color: #666;">Will the price be higher in 24 hours?</p>
+                
+                <div style="display: flex; gap: 15px; margin: 1.5rem 0;">
+                    <button onclick="castVote('up')" style="flex: 1; background: #28a745; color: white; padding: 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 1rem;">YES / UP</button>
+                    <button onclick="castVote('down')" style="flex: 1; background: #dc3545; color: white; padding: 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 1rem;">NO / DOWN</button>
+                </div>
+
+                <div style="height: 24px; background: #eee; border-radius: 12px; overflow: hidden; display: flex; border: 1px solid #ddd;">
+                    <div id="vote-bar-up" style="width: 50%; background: #28a745; transition: width 0.6s ease-in-out;"></div>
+                    <div id="vote-bar-down" style="width: 50%; background: #dc3545; transition: width 0.6s ease-in-out;"></div>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-top: 10px; font-weight: bold;">
+                    <span style="color: #28a745;"><span id="up-pct">50</span>% Yes</span>
+                    <span style="color: #dc3545;"><span id="down-pct">50</span>% No</span>
+                </div>
+            </div>
+
+            <div id="gauge-card" style="background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <h3 style="margin-top: 0;">Technical Analysis Signal</h3>
+                <div id="tv-gauge-container" style="min-height: 350px; width: 100%;">
+                    </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. THE BULLETPROOF GAUGE INJECTION ---
+        function updateTechnicalGauge(symbol) {
+            const container = document.getElementById('tv-gauge-container');
+            if (!container) return;
+            
+            container.innerHTML = ''; // Clear previous
+            
+            // Create required TradingView wrapper structure
+            const wrapper = document.createElement('div');
+            wrapper.className = "tradingview-widget-container";
+            
+            const widgetDiv = document.createElement('div');
+            widgetDiv.className = "tradingview-widget-container__widget";
+            wrapper.appendChild(widgetDiv);
+
+            const script = document.createElement('script');
+            script.type = 'text/javascript';
+            script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-technical-analysis.js';
+            script.async = true;
+            
+            const config = {
+                "interval": "1H",
+                "width": "100%",
+                "isTransparent": false,
+                "height": 350,
+                "symbol": `BINANCE:${symbol.toUpperCase()}USDT`,
+                "showIntervalTabs": true,
+                "locale": "en",
+                "colorTheme": "light"
+            };
+            
+            script.text = JSON.stringify(config);
+            wrapper.appendChild(script);
+            container.appendChild(wrapper);
+        }
+
+        // --- 2. THE VOTING LOGIC ---
+        function castVote(type) {
+            const symbolText = document.getElementById('market-title').innerText;
+            const symbol = symbolText.split(': ')[1].split('/')[0];
+            
+            fetch('/api/cast_vote', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ symbol: symbol, type: type })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw new Error(err.error) });
+                }
+                return response.json();
+            })
+            .then(data => {
+                alert("Vote registered!");
+                refreshVoteDisplay(symbol);
+            })
+            .catch(err => {
+                alert(err.message);
+            });
+        }
+
+        function refreshVoteDisplay(symbol) {
+            fetch(`/api/get_votes/${symbol}`)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('vote-bar-up').style.width = data.up_pct + '%';
+                    document.getElementById('vote-bar-down').style.width = data.down_pct + '%';
+                    document.getElementById('up-pct').innerText = data.up_pct;
+                    document.getElementById('down-pct').innerText = data.down_pct;
+                });
+        }
+
+        // --- 3. DYNAMIC UPDATE ---
+        function updateMarket(symbol) {
+            const cleanSymbol = symbol.toUpperCase();
+            document.getElementById('market-title').innerText = `Market Trend: ${cleanSymbol}/USDT`;
+
+            loadMainChart(cleanSymbol);
+            updateTechnicalGauge(cleanSymbol);
+            refreshVoteDisplay(cleanSymbol);
+        }
+
+        // --- 4. SEARCH LOGIC ---
+        const pSearchInput = document.getElementById('predictive-search');
+        const pResultsContainer = document.getElementById('predictive-search-results');
+
+        pSearchInput.addEventListener('keyup', () => {
+            const query = pSearchInput.value.trim();
+            if (query.length < 2) { pResultsContainer.style.display = 'none'; return; }
+            
+            fetch(`/api/search_coins?query=${query}`)
+                .then(res => res.json())
+                .then(data => {
+                    pResultsContainer.innerHTML = '';
+                    if (data && data.length > 0) {
+                        data.slice(0, 5).forEach(coin => {
+                            const item = document.createElement('div');
+                            item.innerHTML = `<strong>${coin.name}</strong> (${coin.symbol})`;
+                            item.style.padding = '12px'; 
+                            item.style.cursor = 'pointer';
+                            item.style.borderBottom = '1px solid #eee';
+                            item.onclick = () => {
+                                updateMarket(coin.symbol);
+                                pSearchInput.value = coin.name;
+                                pResultsContainer.style.display = 'none';
+                            };
+                            pResultsContainer.appendChild(item);
+                        });
+                        pResultsContainer.style.display = 'block';
+                    }
+                });
+        });
+
+        // --- 5. INITIAL LOAD (WITH TIMEOUT FOR STABILITY) ---
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                updateTechnicalGauge('BTC');
+                refreshVoteDisplay('BTC');
+            }, 500); // 0.5s delay to let page stabilize
+        });
+    </script>
+{% endblock %}

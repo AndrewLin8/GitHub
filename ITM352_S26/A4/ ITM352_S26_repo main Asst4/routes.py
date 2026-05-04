@@ -2,25 +2,24 @@ from flask import render_template, request, redirect, url_for, flash, session, j
 from werkzeug.security import generate_password_hash, check_password_hash
 import json
 import requests
-from datetime import datetime
+from datetime import datetime, timezone
 import os
 from __init__ import app, db
-from models import Crypto, User, PortfolioItem
+# Ensure PredictionVote is included here
+from models import Crypto, User, PortfolioItem, PredictionVote
 from security import encrypt_data, decrypt_data
 import ccxt
 
-# Website pages
+# --- PAGE ROUTES ---
+
 @app.route('/')
 def index():
-    # Show a public homepage for anonymous visitors.
     if 'user_id' not in session:
         return render_template('index.html', portfolio_items=[], alerts=[])
 
-    # Fetch the portfolio items for the logged-in user
     user_id = session['user_id']
     portfolio_items = PortfolioItem.query.filter_by(user_id=user_id).all()
     
-    # Load alerts for the user
     alerts = []
     alerts_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), f'alerts_{user_id}.json')
     if os.path.exists(alerts_file):
@@ -30,12 +29,17 @@ def index():
             except json.JSONDecodeError:
                 pass
 
-    # Render the index.html template, passing in our crypto data
     return render_template('index.html', portfolio_items=portfolio_items, alerts=alerts)
+
+@app.route('/predictive-market')
+def predictive_market():
+    """Renders the new predictive market page."""
+    return render_template('predictive_market.html')
+
+# --- PORTFOLIO MANAGEMENT ---
 
 @app.route('/add_portfolio_item', methods=['POST'])
 def add_portfolio_item():
-    # Protect the route
     if 'user_id' not in session:
         flash('Please log in to add items to your portfolio.', 'error')
         return redirect(url_for('login'))
@@ -61,10 +65,8 @@ def add_portfolio_item():
         flash('Coin ID cannot be empty.', 'error')
         return redirect(url_for('index'))
 
-    # Check if the crypto is already tracked in our database
     crypto = Crypto.query.filter(Crypto.name.ilike(coin_id)).first()
     if not crypto:
-        # Add to DB; the sync_engine will update price/market_cap on its next run
         crypto = Crypto(name=coin_id, symbol=coin_id.upper())
         db.session.add(crypto)
         db.session.commit()
@@ -98,6 +100,8 @@ def delete_portfolio_item(item_id):
         
     return redirect(url_for('index'))
 
+# --- API ROUTES ---
+
 @app.route('/api/portfolio_data')
 def portfolio_data():
     if 'user_id' not in session:
@@ -121,51 +125,75 @@ def portfolio_data():
             'last_updated': item.crypto.last_updated.isoformat() if item.crypto.last_updated else None
         })
     
-    response_data = {'portfolio_items': data, 'total_value': total_value}
-    return jsonify(response_data)
+    return jsonify({'portfolio_items': data, 'total_value': total_value})
 
 @app.route('/api/search_coins')
 def search_coins():
     query = request.args.get('query', '').strip()
     if not query:
-        return jsonify([]) # Return empty list if no query
+        return jsonify([])
 
     try:
-        # Call CoinGecko's search API
         url = f"https://api.coingecko.com/api/v3/search?query={query}"
         response = requests.get(url, timeout=10)
-        response.raise_for_status() # Raise an exception for bad status codes
+        response.raise_for_status()
         data = response.json()
-        
-        # We only care about the 'coins' part of the response
         return jsonify(data.get('coins', []))
-        
-    except requests.exceptions.RequestException as e:
-        print(f"Error calling CoinGecko search API: {e}")
-        return jsonify({"error": "Failed to fetch search results"}), 500
+    except Exception as e:
+        print(f"Search error: {e}")
+        return jsonify([]), 500
+
+# --- PREDICTION MARKET API ---
+
+@app.route('/api/get_votes/<symbol>')
+def get_votes(symbol):
+    symbol = symbol.upper()
+    up_count = PredictionVote.query.filter_by(coin_symbol=symbol, vote_type='up').count()
+    down_count = PredictionVote.query.filter_by(coin_symbol=symbol, vote_type='down').count()
+    
+    total = up_count + down_count
+    if total == 0:
+        return jsonify({'up_pct': 50, 'down_pct': 50, 'total': 0})
+    
+    up_pct = round((up_count / total) * 100)
+    return jsonify({'up_pct': up_pct, 'down_pct': 100 - up_pct, 'total': total})
+
+@app.route('/api/cast_vote', methods=['POST'])
+def cast_vote():
+    if 'user_id' not in session:
+        return jsonify({'error': 'You must be logged in to vote!'}), 401
+    
+    data = request.get_json()
+    symbol = data.get('symbol').upper()
+    vote_type = data.get('type')
+    user_id = session['user_id']
+
+    # Server-side block for double voting
+    existing = PredictionVote.query.filter_by(user_id=user_id, coin_symbol=symbol).first()
+    if existing:
+        return jsonify({'error': 'You have already placed a prediction for this coin.'}), 400
+
+    new_vote = PredictionVote(user_id=user_id, coin_symbol=symbol, vote_type=vote_type)
+    db.session.add(new_vote)
+    db.session.commit()
+    
+    return jsonify({'success': True})
+
+# --- AUTH & SETTINGS ---
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-        
-        # Check if the user already exists
         if User.query.filter_by(username=username).first():
-            flash('Username already exists. Please choose another.', 'error')
+            flash('Username exists.', 'error')
             return redirect(url_for('register'))
-            
-        # Create the new user and save to the database
-        new_user = User(
-            username=username, 
-            password_hash=generate_password_hash(password)
-        )
+        new_user = User(username=username, password_hash=generate_password_hash(password))
         db.session.add(new_user)
         db.session.commit()
-        
-        flash('Registration successful! Please log in.', 'success')
+        flash('Registered!', 'success')
         return redirect(url_for('login'))
-        
     return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -174,110 +202,66 @@ def login():
         username = request.form.get('username')
         password = request.form.get('password')
         user = User.query.filter_by(username=username).first()
-        
         if user and check_password_hash(user.password_hash, password):
             session['user_id'] = user.id
             session['username'] = user.username
-            flash('Logged in successfully!', 'success')
+            flash('Logged in!', 'success')
             return redirect(url_for('index'))
-        else:
-            flash('Invalid username or password.', 'error')
-            
+        flash('Invalid credentials.', 'error')
     return render_template('login.html')
 
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():
     if 'user_id' not in session:
-        flash('Please log in to access settings.', 'error')
         return redirect(url_for('login'))
-        
     user = User.query.get(session['user_id'])
-    
     if request.method == 'POST':
         api_key = request.form.get('api_key', '').strip()
         api_secret = request.form.get('api_secret', '').strip()
-        
-        if api_key or api_secret:
-            if api_key:
-                user.api_key = api_key
-            if api_secret:
-                # Encrypt the API secret using military-grade Fernet encryption before saving
-                user.encrypted_api_secret = encrypt_data(api_secret)
-            db.session.commit()
-            flash('API credentials successfully saved!', 'success')
-        else:
-            flash('No API credentials provided.', 'error')
-            
-    # Just pass a boolean flag to the template for the secret for security
-    has_api_secret = bool(user.encrypted_api_secret)
-    # It is safe to pass the public API Key back to the template
-    return render_template('settings.html', has_api_secret=has_api_secret, api_key=user.api_key)
+        if api_key: user.api_key = api_key
+        if api_secret: user.encrypted_api_secret = encrypt_data(api_secret)
+        db.session.commit()
+        flash('Settings saved!', 'success')
+    return render_template('settings.html', has_api_secret=bool(user.encrypted_api_secret), api_key=user.api_key)
 
 @app.route('/logout')
 def logout():
     session.clear()
-    flash('You have been logged out.', 'success')
     return redirect(url_for('index'))
 
+# --- EXCHANGE IMPORT (CCXT) ---
 
 @app.route('/import_exchange', methods=['POST'])
 def import_exchange():
-    """Imports holdings from the user's linked exchange (Binance) using ccxt and saved API keys."""
     if 'user_id' not in session:
-        flash('Please log in to import holdings.', 'error')
         return redirect(url_for('login'))
 
     user = User.query.get(session['user_id'])
     if not user.api_key or not user.encrypted_api_secret:
-        flash('Please save your API credentials in Settings before importing.', 'error')
+        flash('Missing API credentials.', 'error')
         return redirect(url_for('settings'))
 
-    # Decrypt secret
     api_secret = decrypt_data(user.encrypted_api_secret)
-    if not api_secret:
-        flash('Failed to decrypt API secret. Re-enter your API credentials.', 'error')
-        return redirect(url_for('settings'))
-
     try:
-        exchange = ccxt.binance({
-            'apiKey': user.api_key,
-            'secret': api_secret,
-            'enableRateLimit': True,
-        })
-        # Do not enable sandbox here — assume user API corresponds to desired environment
+        exchange = ccxt.binance({'apiKey': user.api_key, 'secret': api_secret})
         balances = exchange.fetch_balance()
         totals = balances.get('total', {})
-
         imported = 0
         for symbol, amount in totals.items():
-            # Skip zero balances and non-numeric
-            try:
-                amt = float(amount or 0)
-            except Exception:
-                continue
-            if amt <= 0:
-                continue
-
-            # symbol is like 'BTC', try to find matching Crypto by symbol
+            amt = float(amount or 0)
+            if amt <= 0: continue
             crypto = Crypto.query.filter_by(symbol=symbol.upper()).first()
             if not crypto:
-                # Create a minimal Crypto record; name uses lowercase id suitable for CoinGecko syncing
                 crypto = Crypto(name=symbol.lower(), symbol=symbol.upper())
                 db.session.add(crypto)
                 db.session.commit()
-
-            # Add or update PortfolioItem for this user
             item = PortfolioItem.query.filter_by(user_id=user.id, crypto_id=crypto.id).first()
-            if item:
-                item.amount_owned = amt
+            if item: item.amount_owned = amt
             else:
-                item = PortfolioItem(user_id=user.id, crypto_id=crypto.id, amount_owned=amt)
-                db.session.add(item)
+                db.session.add(PortfolioItem(user_id=user.id, crypto_id=crypto.id, amount_owned=amt))
             imported += 1
-
         db.session.commit()
-        flash(f'Imported {imported} holdings from exchange.', 'success')
+        flash(f'Imported {imported} holdings.', 'success')
     except Exception as e:
-        flash(f'Failed to import holdings: {e}', 'error')
-
+        flash(f'Import failed: {e}', 'error')
     return redirect(url_for('settings'))
