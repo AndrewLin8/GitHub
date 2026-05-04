@@ -9,6 +9,6 @@ app.config.from_object(Config)
 # Initialize the database
 db = SQLAlchemy(app)
 
-# Import routes after app initialization to avoid circular imports
+# to ensure the SQLAlchemy metadata is ready and avoid circular crashes.
+from models import Crypto, User, PortfolioItem, PredictionVote
 import routes
-import models

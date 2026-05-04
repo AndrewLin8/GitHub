@@ -113,13 +113,18 @@ def portfolio_data():
     data = []
     total_value = 0
     for item in portfolio_items:
-        holding_value = (item.crypto.price or 0) * (item.amount_owned or 0)
-        total_value += holding_value
+        # Calculate total value for the header summary
+        holding_val = (item.crypto.price or 0) * (item.amount_owned or 0)
+        total_value += holding_val
+        
+        # Note: Ensure your sync_engine or DB stores high/low 
+        # For now, we will pass placeholders if they aren't in your DB yet
         data.append({
             'item_id': item.id,
             'symbol': item.crypto.symbol,
             'price': item.crypto.price,
-            'holding_value': holding_value,
+            'high_24h': item.crypto.high_24h if hasattr(item.crypto, 'high_24h') else 0,
+            'low_24h': item.crypto.low_24h if hasattr(item.crypto, 'low_24h') else 0,
             'change_24h': item.crypto.change_24h,
             'market_cap': item.crypto.market_cap,
             'last_updated': item.crypto.last_updated.isoformat() if item.crypto.last_updated else None
@@ -214,15 +219,28 @@ def login():
 def settings():
     if 'user_id' not in session:
         return redirect(url_for('login'))
+    
     user = User.query.get(session['user_id'])
+    
     if request.method == 'POST':
         api_key = request.form.get('api_key', '').strip()
         api_secret = request.form.get('api_secret', '').strip()
-        if api_key: user.api_key = api_key
-        if api_secret: user.encrypted_api_secret = encrypt_data(api_secret)
+        
+        if api_key: 
+            user.api_key = api_key
+        if api_secret: 
+            user.encrypted_api_secret = encrypt_data(api_secret)
+        
+        # Save sound preference from the checkbox
+        user.sound_alerts_enabled = 'enable_sound' in request.form
+        
         db.session.commit()
         flash('Settings saved!', 'success')
-    return render_template('settings.html', has_api_secret=bool(user.encrypted_api_secret), api_key=user.api_key)
+        
+    return render_template('settings.html', 
+                           has_api_secret=bool(user.encrypted_api_secret), 
+                           api_key=user.api_key,
+                           sound_enabled=user.sound_alerts_enabled)
 
 @app.route('/logout')
 def logout():

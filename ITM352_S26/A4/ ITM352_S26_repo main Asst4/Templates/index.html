@@ -1,6 +1,10 @@
 {% extends 'base.html' %}
 
 {% block content %}
+    <audio id="alert-sound" preload="auto">
+        <source src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" type="audio/mpeg">
+    </audio>
+
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
         <h1 style="margin: 0; color: #333;">My Portfolio & Watchlist</h1>
         
@@ -13,7 +17,7 @@
         {% endfor %}
         
         <div style="text-align: right;">
-            <span style="font-size: 1.1rem; color: #666;">Total Value:</span>
+            <span style="font-size: 1.1rem; color: #666;">Total Portfolio Value:</span>
             <span id="total-portfolio-value" style="font-size: 1.8rem; font-weight: bold; color: #28a745; margin-left: 10px;">
                 ${{ "%.2f"|format(total_value.value) }}
             </span>
@@ -29,7 +33,6 @@
                         <th style="padding: 12px;">Symbol</th>
                         <th style="padding: 12px;">Holdings</th>
                         <th style="padding: 12px;">Price (USD)</th>
-                        <th style="padding: 12px;">Value</th>
                         <th style="padding: 12px;">24h Change</th>
                         <th style="padding: 12px;">Market Cap</th>
                         <th style="padding: 12px;">Actions</th>
@@ -42,7 +45,7 @@
                             <td style="padding: 12px;"><strong>{{ item.crypto.symbol }}</strong></td>
                             <td style="padding: 12px;">{{ item.amount_owned }}</td>
                             <td style="padding: 12px;" id="price-{{ item.id }}">${{ "%.2f"|format(item.crypto.price) if item.crypto.price else 'N/A' }}</td>
-                            <td style="padding: 12px;"><strong id="holding-{{ item.id }}">${{ "%.2f"|format(item.amount_owned * item.crypto.price) if item.crypto.price and item.amount_owned else '0.00' }}</strong></td>
+                            
                             <td style="padding: 12px;" id="change-{{ item.id }}" {% if item.crypto.change_24h and item.crypto.change_24h > 0 %}style="color: green;"{% elif item.crypto.change_24h and item.crypto.change_24h < 0 %}style="color: red;"{% endif %}>
                                 {{ "%.2f"|format(item.crypto.change_24h) if item.crypto.change_24h else '0.00' }}%
                             </td>
@@ -83,8 +86,7 @@
             
             <div style="flex: 1; min-width: 150px;">
                 <label for="target_price" style="display: block; margin-bottom: 8px; font-weight: bold; font-size: 0.9rem;">Target Price Alert</label>
-                <input type="number" step="any" id="target_price" name="target_price" placeholder="e.g. 75000"
-                       style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box;">
+                <input type="number" step="any" id="target_price" name="target_price" placeholder="e.g. 75000">
             </div>
             
             <button type="submit" style="background-color: #28a745; color: white; padding: 13px 30px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s;">
@@ -95,17 +97,17 @@
 
     <div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
         <h3 style="margin-top: 0; margin-bottom: 1.2rem; color: #333;">Smart Alerts Log</h3>
-        {% if alerts %}
-            <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div id="alerts-container" style="display: flex; flex-direction: column; gap: 10px;">
+            {% if alerts %}
                 {% for alert in alerts %}
-                    <div style="padding: 15px; border-left: 5px solid #ffc107; background: #fffdf0; border-radius: 6px;">
+                    <div class="alert-item" style="padding: 15px; border-left: 5px solid #ffc107; background: #fffdf0; border-radius: 6px;">
                         <strong>{{ alert.timestamp }}</strong>: {{ alert.message }}
                     </div>
                 {% endfor %}
-            </div>
-        {% else %}
-            <p style="color: #6c757d; font-style: italic;">No alerts triggered yet. Set a target price to get notified!</p>
-        {% endif %}
+            {% else %}
+                <p id="no-alerts-msg" style="color: #6c757d; font-style: italic;">No alerts triggered yet. Set a target price to get notified!</p>
+            {% endif %}
+        </div>
     </div>
 
     <div id="chartModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center;">
@@ -118,11 +120,8 @@
 
     <script src="https://widgets.coingecko.com/coingecko-coin-price-chart-widget.js"></script>
     <script>
-        function formatToLocalTime(utcString) {
-            if (!utcString || utcString === 'N/A') return 'N/A';
-            const date = new Date(utcString + (utcString.endsWith('Z') ? '' : 'Z'));
-            return date.toLocaleString();
-        }
+        // Track count to detect new alerts for sound chime
+        let lastAlertCount = {{ alerts|length }};
 
         function fetchLatestPrices() {
             fetch('/api/portfolio_data')
@@ -133,13 +132,12 @@
 
                     data.portfolio_items.forEach(item => {
                         const priceEl = document.getElementById('price-' + item.item_id);
-                        const holdingEl = document.getElementById('holding-' + item.item_id);
                         const changeEl = document.getElementById('change-' + item.item_id);
                         const mcapEl = document.getElementById('mcap-' + item.item_id);
 
                         if (item.price !== null) {
                             if (priceEl) priceEl.innerText = '$' + item.price.toFixed(2);
-                            if (holdingEl) holdingEl.innerText = '$' + item.holding_value.toFixed(2);
+                            
                             if (changeEl && item.change_24h !== null) {
                                 changeEl.innerText = item.change_24h.toFixed(2) + '%';
                                 changeEl.style.color = item.change_24h > 0 ? 'green' : (item.change_24h < 0 ? 'red' : 'inherit');
@@ -149,10 +147,21 @@
                             }
                         }
                     });
+
+                    // Check for new alerts to trigger chime
+                    if (data.alerts && data.alerts.length > lastAlertCount) {
+                        const audio = document.getElementById('alert-sound');
+                        audio.play().catch(e => console.log("Sound autoplay blocked by browser"));
+                        
+                        lastAlertCount = data.alerts.length;
+                        // Reload log after chime to show the new alert message
+                        setTimeout(() => { location.reload(); }, 1000);
+                    }
                 })
                 .catch(err => console.error('Error fetching live prices:', err));
         }
 
+        // Auto-refresh every 10 seconds
         setInterval(fetchLatestPrices, 10000);
 
         // Search Autocomplete

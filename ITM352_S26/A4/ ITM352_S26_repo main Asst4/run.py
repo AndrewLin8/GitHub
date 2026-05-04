@@ -1,25 +1,28 @@
+# run.py
 import threading
 from __init__ import app, db
-from models import Crypto
 from sync_engine import sync_crypto_prices
 
 def start_background_worker():
-    # Run the sync engine in a separate thread so it doesn't block the website
+    """Starts the price syncing and alert engine in a separate thread."""
+    # daemon=True ensures the thread exits when the main program stops
     worker_thread = threading.Thread(target=sync_crypto_prices, daemon=True)
     worker_thread.start()
 
 if __name__ == '__main__':
+    # Initialize the database and seed data if necessary
     with app.app_context():
         db.create_all()
-        
-        # Seed initial data if empty
-        if not Crypto.query.first():
-            btc = Crypto(name="bitcoin", symbol="BTC", price=64500.00)
-            eth = Crypto(name="ethereum", symbol="ETH", price=3450.00)
-            db.session.add_all([btc, eth])
-            db.session.commit()
+        print("--- Database Tables Verified ---")
     
-    # Start the price sync engine automatically
+    # Start the background sync engine before launching the web server
     start_background_worker()
     
-    app.run(debug=True, use_reloader=False) # use_reloader=False prevents the thread from starting twice
+    # Explicitly print the access link for better visibility
+    print("\n" + "="*40)
+    print("  CRYPTO DASHBOARD ACTIVE")
+    print("  URL: http://127.0.0.1:5001")
+    print("="*40 + "\n")
+    
+    # use_reloader=False prevents the background thread from starting twice
+    app.run(debug=True, use_reloader=False, port=5001)

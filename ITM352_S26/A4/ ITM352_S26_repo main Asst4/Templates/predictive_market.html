@@ -14,35 +14,11 @@
         <div style="background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                 <h3 id="market-title" style="margin: 0;">Market Trend: BTC/USDT</h3>
-                <span style="color: #666; font-size: 0.9rem;">Live Exchange Data (Binance)</span>
+                <span style="color: #666; font-size: 0.9rem; background: #f8f9fa; padding: 4px 10px; border-radius: 4px;">Live Exchange Data (Binance)</span>
             </div>
             
-            <div id="tv-chart-container" style="height: 700px; width: 100%; border: 1px solid #eee; border-radius: 4px; overflow: hidden;">
-                <div class="tradingview-widget-container" style="height:100%;width:100%">
-                    <div id="tradingview_chart" style="height:100%;width:100%"></div>
-                    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-                    <script type="text/javascript">
-                    function loadMainChart(symbol) {
-                        new TradingView.widget({
-                            "autosize": true,
-                            "symbol": `BINANCE:${symbol.toUpperCase()}USDT`,
-                            "interval": "H",
-                            "timezone": "Etc/UTC",
-                            "theme": "light",
-                            "style": "1",
-                            "locale": "en",
-                            "toolbar_bg": "#f1f3f6",
-                            "enable_publishing": false,
-                            "hide_top_toolbar": false, 
-                            "hide_legend": false,      
-                            "save_image": false,
-                            "container_id": "tradingview_chart"
-                        });
-                    }
-                    // Initial load
-                    loadMainChart('BTC');
-                    </script>
-                </div>
+            <div id="tv-chart-container" style="height: 600px; width: 100%; border: 1px solid #eee; border-radius: 4px; overflow: hidden;">
+                <div id="tradingview_chart" style="height:100%;width:100%"></div>
             </div>
         </div>
 
@@ -53,8 +29,8 @@
                 <p style="color: #666;">Will the price be higher in 24 hours?</p>
                 
                 <div style="display: flex; gap: 15px; margin: 1.5rem 0;">
-                    <button onclick="castVote('up')" style="flex: 1; background: #28a745; color: white; padding: 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 1rem;">YES / UP</button>
-                    <button onclick="castVote('down')" style="flex: 1; background: #dc3545; color: white; padding: 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 1rem;">NO / DOWN</button>
+                    <button onclick="castVote('up')" style="flex: 1; background: #28a745; color: white; padding: 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 1rem; transition: 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">YES / UP</button>
+                    <button onclick="castVote('down')" style="flex: 1; background: #dc3545; color: white; padding: 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 1rem; transition: 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">NO / DOWN</button>
                 </div>
 
                 <div style="height: 24px; background: #eee; border-radius: 12px; overflow: hidden; display: flex; border: 1px solid #ddd;">
@@ -62,8 +38,8 @@
                     <div id="vote-bar-down" style="width: 50%; background: #dc3545; transition: width 0.6s ease-in-out;"></div>
                 </div>
                 <div style="display: flex; justify-content: space-between; margin-top: 10px; font-weight: bold;">
-                    <span style="color: #28a745;"><span id="up-pct">50</span>% Yes</span>
-                    <span style="color: #dc3545;"><span id="down-pct">50</span>% No</span>
+                    <span style="color: #28a745;"><span id="up-pct">50</span>% Bullish</span>
+                    <span style="color: #dc3545;"><span id="down-pct">50</span>% Bearish</span>
                 </div>
             </div>
 
@@ -75,44 +51,67 @@
         </div>
     </div>
 
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     <script>
-        // --- 1. THE BULLETPROOF GAUGE INJECTION ---
-        function updateTechnicalGauge(symbol) {
-            const container = document.getElementById('tv-gauge-container');
-            if (!container) return;
-            
-            container.innerHTML = ''; // Clear previous
-            
-            // Create required TradingView wrapper structure
-            const wrapper = document.createElement('div');
-            wrapper.className = "tradingview-widget-container";
-            
-            const widgetDiv = document.createElement('div');
-            widgetDiv.className = "tradingview-widget-container__widget";
-            wrapper.appendChild(widgetDiv);
-
-            const script = document.createElement('script');
-            script.type = 'text/javascript';
-            script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-technical-analysis.js';
-            script.async = true;
-            
-            const config = {
-                "interval": "1H",
+        // --- 1. MAIN CHART LOAD ---
+        function loadMainChart(symbol) {
+            new TradingView.widget({
                 "width": "100%",
-                "isTransparent": false,
-                "height": 350,
+                "height": "100%",
                 "symbol": `BINANCE:${symbol.toUpperCase()}USDT`,
-                "showIntervalTabs": true,
+                "interval": "H",
+                "timezone": "Etc/UTC",
+                "theme": "light",
+                "style": "1",
                 "locale": "en",
-                "colorTheme": "light"
-            };
-            
-            script.text = JSON.stringify(config);
-            wrapper.appendChild(script);
-            container.appendChild(wrapper);
+                "toolbar_bg": "#f1f3f6",
+                "enable_publishing": false,
+                "hide_top_toolbar": false,
+                "container_id": "tradingview_chart"
+            });
         }
 
-        // --- 2. THE VOTING LOGIC ---
+        // --- 2. TECHNICAL GAUGE LOAD ---
+        function updateTechnicalGauge(symbol) {
+    const container = document.getElementById('tv-gauge-container');
+    if (!container) return;
+    
+    container.innerHTML = ''; 
+
+    const wrapper = document.createElement('div');
+    wrapper.className = "tradingview-widget-container";
+    // Increase height to at least 450px to fit the speedometer
+    wrapper.style.height = "450px"; 
+    wrapper.style.width = "100%";
+    
+    const widgetDiv = document.createElement('div');
+    widgetDiv.className = "tradingview-widget-container__widget";
+    widgetDiv.style.height = "450px";
+    wrapper.appendChild(widgetDiv);
+
+    const script = document.createElement('script');
+    script.type = 'text/javascript';
+    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-technical-analysis.js';
+    script.async = true;
+    
+    const config = {
+        "interval": "1m",
+        "width": "100%",
+        "isTransparent": false,
+        "height": "450", // Match the wrapper height here
+        "symbol": `BINANCE:${symbol.toUpperCase()}USDT`,
+        "showIntervalTabs": true,
+        "displayMode": "single", // Forces the full speedometer view
+        "locale": "en",
+        "colorTheme": "light"
+    };
+    
+    script.text = JSON.stringify(config);
+    wrapper.appendChild(script);
+    container.appendChild(wrapper);
+}
+
+        // --- 3. VOTING & API LOGIC ---
         function castVote(type) {
             const symbolText = document.getElementById('market-title').innerText;
             const symbol = symbolText.split(': ')[1].split('/')[0];
@@ -123,18 +122,14 @@
                 body: JSON.stringify({ symbol: symbol, type: type })
             })
             .then(response => {
-                if (!response.ok) {
-                    return response.json().then(err => { throw new Error(err.error) });
-                }
+                if (!response.ok) return response.json().then(err => { throw new Error(err.error) });
                 return response.json();
             })
             .then(data => {
                 alert("Vote registered!");
                 refreshVoteDisplay(symbol);
             })
-            .catch(err => {
-                alert(err.message);
-            });
+            .catch(err => alert(err.message));
         }
 
         function refreshVoteDisplay(symbol) {
@@ -148,7 +143,7 @@
                 });
         }
 
-        // --- 3. DYNAMIC UPDATE ---
+        // --- 4. DYNAMIC UI UPDATE ---
         function updateMarket(symbol) {
             const cleanSymbol = symbol.toUpperCase();
             document.getElementById('market-title').innerText = `Market Trend: ${cleanSymbol}/USDT`;
@@ -158,7 +153,7 @@
             refreshVoteDisplay(cleanSymbol);
         }
 
-        // --- 4. SEARCH LOGIC ---
+        // --- 5. SEARCH AUTOCOMPLETE ---
         const pSearchInput = document.getElementById('predictive-search');
         const pResultsContainer = document.getElementById('predictive-search-results');
 
@@ -189,12 +184,14 @@
                 });
         });
 
-        // --- 5. INITIAL LOAD (WITH TIMEOUT FOR STABILITY) ---
+        // --- 6. INITIALIZATION ---
         window.addEventListener('load', () => {
+            // Slight delay to ensure DOM and TradingView library are fully ready
             setTimeout(() => {
+                loadMainChart('BTC');
                 updateTechnicalGauge('BTC');
                 refreshVoteDisplay('BTC');
-            }, 500); // 0.5s delay to let page stabilize
+            }, 500);
         });
     </script>
 {% endblock %}
