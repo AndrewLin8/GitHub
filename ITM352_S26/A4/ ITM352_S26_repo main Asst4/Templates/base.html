@@ -3,47 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crypto Tracker & Predictive Market</title>
+    <title>Crypto Dashboard</title>
+    
     <style>
-        body { font-family: Arial, sans-serif; margin: 0; background-color: #f4f7f6; }
-        header { background-color: #333; color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
-        nav a { color: white; text-decoration: none; margin-left: 20px; font-weight: bold; }
-        nav a:hover { color: #28a745; }
-        .container { padding: 2rem; max-width: 1200px; margin: 0 auto; }
-        .flash-messages { list-style: none; padding: 0; }
-        .flash-success { background-color: #d4edda; color: #155724; padding: 10px; border-radius: 4px; margin-bottom: 10px; }
-        .flash-error { background-color: #f8d7da; color: #721c24; padding: 10px; border-radius: 4px; margin-bottom: 10px; }
+        /* --- THEME LOGIC --- */
+        :root {
+            --bg-color: #f4f7f6;
+            --text-color: #333;
+            --card-bg: #ffffff;
+            --border-color: #ddd;
+        }
+
+        /* This applies if settings.theme is 'dark' */
+        .dark-mode {
+            --bg-color: #1a202c;
+            --text-color: #f7fafc;
+            --card-bg: #2d3748;
+            --border-color: #4a5568;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Navigation Style */
+        nav {
+            background: #2d3748;
+            padding: 1rem;
+            display: flex;
+            gap: 20px;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        /* Ensure cards and containers follow the theme */
+        .container { padding: 20px; }
+        
+        .card, div[style*="background: white"], div[style*="background-color: white"] {
+            background-color: var(--card-bg) !important;
+            color: var(--text-color) !important;
+            border: 1px solid var(--border-color);
+        }
+        
+        /* Adjusting headings for Dark Mode visibility */
+        .dark-mode h1, .dark-mode h2, .dark-mode h3, .dark-mode strong {
+            color: #edf2f7 !important;
+        }
     </style>
 </head>
-<body>
-    <header>
-        <h2 style="margin: 0;">CryptoTracker</h2>
-        <nav>
-            <a href="{{ url_for('index') }}">Home</a>
-            <a href="{{ url_for('predictive_market') }}">Market Predict</a>
-            
-            {% if session.get('user_id') %}
-                <a href="{{ url_for('settings') }}">Settings</a>
-                <a href="{{ url_for('logout') }}">Logout</a>
-            {% else %}
-                <a href="{{ url_for('login') }}">Login</a>
-                <a href="{{ url_for('register') }}">Register</a>
-            {% endif %}
-        </nav>
-    </header>
+
+<body class="{{ settings.theme if settings else 'light' }}-mode">
+
+    <nav>
+        <a href="{{ url_for('portfolio_index') }}">Dashboard</a>
+        <a href="{{ url_for('predictive_market', symbol='BTC') }}">Prediction Market</a>
+        <a href="{{ url_for('settings') }}">Settings</a>
+        
+        {% if session.get('user_id') %}
+            <span style="color: #a0aec0; margin-left: auto;">Logged in as {{ session.get('username') }}</span>
+            <a href="{{ url_for('logout') }}" style="color: #fc8181;">Logout</a>
+        {% else %}
+            <a href="{{ url_for('login') }}" style="margin-left: auto;">Login</a>
+        {% endif %}
+    </nav>
 
     <div class="container">
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
-            <ul class="flash-messages">
-              {% for category, message in messages %}
-                <li class="flash-{{ category }}">{{ message }}</li>
-              {% endfor %}
-            </ul>
+            {% for category, message in messages %}
+              <div style="padding: 10px; margin-bottom: 20px; border-radius: 5px; 
+                          background-color: {{ '#c6f6d5' if category == 'success' else '#fed7d7' }};
+                          color: {{ '#2f855a' if category == 'success' else '#9b2c2c' }};">
+                {{ message }}
+              </div>
+            {% endfor %}
           {% endif %}
         {% endwith %}
 
         {% block content %}{% endblock %}
     </div>
+
 </body>
 </html>

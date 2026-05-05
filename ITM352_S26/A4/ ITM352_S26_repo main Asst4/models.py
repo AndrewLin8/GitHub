@@ -3,7 +3,6 @@ from __init__ import db
 
 # 1. CRYPTO MARKET DATA MODEL
 class Crypto(db.Model):
-    # Allows the table to be redefined during circular imports without crashing
     __table_args__ = {'extend_existing': True} 
     
     id = db.Column(db.Integer, primary_key=True)
@@ -25,14 +24,10 @@ class User(db.Model):
     username = db.Column(db.String(64), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
     
-    # API Credentials for Binance Integration
     api_key = db.Column(db.String(256), nullable=True)
     encrypted_api_secret = db.Column(db.String(256), nullable=True)
-    
-    # User Preferences
     sound_alerts_enabled = db.Column(db.Boolean, default=True) 
     
-    # Relationship to link users to their specific portfolio items
     portfolio = db.relationship('PortfolioItem', backref='user', lazy=True)
 
 # 3. PORTFOLIO & WATCHLIST MODEL
@@ -43,18 +38,13 @@ class PortfolioItem(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     crypto_id = db.Column(db.Integer, db.ForeignKey('crypto.id'), nullable=False)
     
-    # Amount owned (Set to 0 if the user just wants to watch the price)
     amount_owned = db.Column(db.Float, default=0.0)
-    
-    # Price target for triggering Smart Alerts
     target_price = db.Column(db.Float, nullable=True)
     
-    # Links back to the Crypto table to get live prices
     crypto = db.relationship('Crypto')
 
-# 4. PREDICTION MARKET VOTING MODEL
+# 4. PREDICTION MARKET VOTING MODEL (For Up/Down on specific coins)
 class PredictionVote(db.Model):
-    # Combines unique constraint for one-vote-per-user with the extension flag
     __table_args__ = (
         db.UniqueConstraint('user_id', 'coin_symbol', name='_user_coin_uc'),
         {'extend_existing': True}
@@ -64,3 +54,34 @@ class PredictionVote(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     coin_symbol = db.Column(db.String(10), nullable=False)
     vote_type = db.Column(db.String(10), nullable=False) # 'up' or 'down'
+
+# 5. COMMUNITY POLL MODELS (For Yes/No questions)
+class Poll(db.Model):
+    __table_args__ = {'extend_existing': True}
+    id = db.Column(db.Integer, primary_key=True)
+    question = db.Column(db.String(255), nullable=False)
+    
+    # Updated to match the Yes/No UI
+    yes_votes = db.Column(db.Integer, default=0)
+    no_votes = db.Column(db.Integer, default=0)
+    
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+class PollVote(db.Model):
+    """Prevents users from voting more than once on a specific poll question"""
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'poll_id', name='_user_poll_uc'),
+        {'extend_existing': True}
+    )
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    poll_id = db.Column(db.Integer, db.ForeignKey('poll.id'), nullable=False)
+    choice = db.Column(db.String(10), nullable=False) # 'yes' or 'no'
+
+# 6. APP SETTINGS MODEL
+class Settings(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    theme = db.Column(db.String(10), default='light')
+    currency = db.Column(db.String(3), default='USD')
+    alert_enabled = db.Column(db.Boolean, default=True)
+    refresh_rate = db.Column(db.Integer, default=10)

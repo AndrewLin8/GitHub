@@ -11,4 +11,3 @@ db = SQLAlchemy(app)
 
 # to ensure the SQLAlchemy metadata is ready and avoid circular crashes.
 from models import Crypto, User, PortfolioItem, PredictionVote
-import routes

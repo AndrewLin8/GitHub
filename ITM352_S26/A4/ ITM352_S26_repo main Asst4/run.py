@@ -1,6 +1,7 @@
 # run.py
 import threading
 from __init__ import app, db
+import routes
 from sync_engine import sync_crypto_prices
 
 def start_background_worker():
