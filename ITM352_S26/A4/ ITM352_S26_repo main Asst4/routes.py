@@ -12,6 +12,23 @@ import hashlib
 
 # --- HELPERS ---
 
+def get_market_recommendations():
+    """Returns a list of mock market recommendations to display on the dashboard."""
+    return [
+        {
+            'name': 'Bitcoin', 'symbol': 'BTC', 'verdict': 'Strong Buy',
+            'sentiment_score': 92, 'reason': 'High institutional adoption and positive ETF inflows.'
+        },
+        {
+            'name': 'Ethereum', 'symbol': 'ETH', 'verdict': 'Buy',
+            'sentiment_score': 85, 'reason': 'Upcoming network upgrades and strong DeFi ecosystem.'
+        },
+        {
+            'name': 'Solana', 'symbol': 'SOL', 'verdict': 'Hold',
+            'sentiment_score': 65, 'reason': 'High throughput but recent network congestion concerns.'
+        }
+    ]
+
 def get_currency_data(currency_code):
     """Returns the symbol and the conversion rate relative to 1 USD"""
     rates = {
@@ -34,11 +51,13 @@ def portfolio_index_view(): # Renamed function to be unique
     curr_data = get_currency_data(config.currency)
     currency_symbol = curr_data['symbol']
     rate = curr_data['rate']
+    recommendations = get_market_recommendations()
 
     if 'user_id' not in session:
         return render_template('index.html', 
                                portfolio_items=[], 
                                alerts=[], 
+                               recommendations=recommendations,
                                settings=config, 
                                currency_symbol=currency_symbol,
                                conversion_rate=rate)
@@ -58,6 +77,7 @@ def portfolio_index_view(): # Renamed function to be unique
     return render_template('index.html', 
                            portfolio_items=portfolio_items, 
                            alerts=alerts, 
+                           recommendations=recommendations,
                            settings=config, 
                            currency_symbol=currency_symbol,
                            conversion_rate=rate)
@@ -126,6 +146,30 @@ def get_all_manifold_polls():
 def all_polls():
     config = Settings.query.first()
     return render_template('all_polls.html', settings=config)
+
+# --- RECOMMENDATIONS ---
+
+@app.route('/recommendations')
+def recommendations():
+    config = Settings.query.first()
+    trending_coins = []
+    try:
+        url = "https://api.coingecko.com/api/v3/search/trending"
+        response = requests.get(url, timeout=10)
+        data = response.json()
+        for item in data.get('coins', []):
+            coin = item.get('item', {})
+            trending_coins.append({
+                'id': coin.get('id'),
+                'name': coin.get('name'),
+                'symbol': coin.get('symbol'),
+                'thumb': coin.get('thumb'),
+                'market_cap_rank': coin.get('market_cap_rank')
+            })
+    except Exception as e:
+        print(f"Trending Fetch Error: {e}")
+        
+    return render_template('recommendations.html', trending_coins=trending_coins, settings=config)
 
 # --- PORTFOLIO MANAGEMENT ---
 
@@ -397,12 +441,22 @@ def settings():
         return redirect(url_for('login'))
     
     user = User.query.get(session['user_id'])
+    
+    # SAFETY CHECK: If the session has an ID but the database doesn't find the user
+    if not user:
+        session.clear() # Clear the invalid session
+        flash("User session expired or account not found. Please login again.", "error")
+        return redirect(url_for('login'))
+        
     if request.method == 'POST':
         api_key = request.form.get('api_key', '').strip()
         api_secret = request.form.get('api_secret', '').strip()
-        if api_key: user.api_key = api_key
-        if api_secret: user.encrypted_api_secret = encrypt_data(api_secret)
+        if api_key: 
+            user.api_key = api_key
+        if api_secret: 
+            user.encrypted_api_secret = encrypt_data(api_secret)
         db.session.commit()
+        flash("Settings updated successfully!", "success")
 
     config = Settings.query.first() or Settings()
     return render_template('settings.html', 

@@ -6,19 +6,13 @@
     </audio>
 
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-        <h1 style="margin: 0; color: #333;">Dashboard Overview</h1>
+        <h1 style="margin: 0; color: #333;">My Portfolio & Watchlist</h1>
         
-        {# Calculate the total portfolio value and count items dynamically #}
+        {# Calculate the total portfolio value dynamically in USD, then convert #}
         {% set total_value = namespace(value=0) %}
-        {% set counts = namespace(portfolio=0, watchlist=0) %}
         {% for item in portfolio_items %}
-            {% if item.amount_owned and item.amount_owned > 0 %}
-                {% set counts.portfolio = counts.portfolio + 1 %}
-                {% if item.crypto.price %}
-                    {% set total_value.value = total_value.value + (item.crypto.price * item.amount_owned) %}
-                {% endif %}
-            {% else %}
-                {% set counts.watchlist = counts.watchlist + 1 %}
+            {% if item.crypto.price and item.amount_owned %}
+                {% set total_value.value = total_value.value + (item.crypto.price * item.amount_owned) %}
             {% endif %}
         {% endfor %}
         
@@ -31,8 +25,7 @@
     </div>
     
     <div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 2.5rem; overflow-x: auto;">
-        <h3 style="margin-top: 0; margin-bottom: 1.5rem; color: #333; border-bottom: 1px solid #eee; padding-bottom: 10px;">My Portfolio</h3>
-        {% if counts.portfolio > 0 %}
+        {% if portfolio_items %}
             <table style="width: 100%; border-collapse: collapse; text-align: left;">
                 <thead>
                     <tr style="border-bottom: 2px solid #eee; color: #888; text-transform: uppercase; font-size: 0.85rem;">
@@ -47,7 +40,6 @@
                 </thead>
                 <tbody id="portfolio-table-body">
                     {% for item in portfolio_items %}
-                        {% if item.amount_owned and item.amount_owned > 0 %}
                         <tr style="border-bottom: 1px solid #f4f4f4;">
                             <td style="padding: 12px;">{{ item.crypto.name }}</td>
                             <td style="padding: 12px;"><strong>{{ item.crypto.symbol }}</strong></td>
@@ -75,7 +67,6 @@
                                 </div>
                             </td>
                         </tr>
-                        {% endif %} {# Added missing endif here #}
                     {% endfor %}
                 </tbody>
             </table>
@@ -90,7 +81,7 @@
         <form method="POST" action="{{ url_for('add_portfolio_item') }}" style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-end;">
             <div style="flex: 2; min-width: 200px; position: relative;">
                 <label for="coin_id" style="display: block; margin-bottom: 8px; font-weight: bold; font-size: 0.9rem;">Coin ID</label>
-                <input type="text" id="coin_id" name="coin_id" class="coin-search-input" placeholder="bitcoin" required
+                <input type="text" id="coin_id" name="coin_id" placeholder="bitcoin" required
                        style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box;">
             </div>
             
@@ -181,53 +172,45 @@
         const refreshInterval = {{ settings.refresh_rate }} * 1000;
         setInterval(fetchLatestPrices, refreshInterval);
 
-        // Fixed logic for search input class
-        document.querySelectorAll('.coin-search-input').forEach(searchInput => {
-            const searchResultsContainer = document.createElement('div');
-            searchResultsContainer.className = 'search-results';
-            Object.assign(searchResultsContainer.style, {
-                border: '1px solid #ccc', borderRadius: '6px', maxHeight: '200px', 
-                overflowY: 'auto', display: 'none', background: 'white', 
-                position: 'absolute', width: '100%', zIndex: '100', marginTop: '5px',
-                boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-            });
-            searchInput.parentNode.appendChild(searchResultsContainer);
+        const searchInput = document.getElementById('coin_id');
+        const searchResultsContainer = document.createElement('div');
+        searchResultsContainer.id = 'search-results';
+        Object.assign(searchResultsContainer.style, {
+            border: '1px solid #ccc', borderRadius: '6px', maxHeight: '200px', 
+            overflowY: 'auto', display: 'none', background: 'white', 
+            position: 'absolute', width: '100%', zIndex: '100', marginTop: '5px',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+        });
+        searchInput.parentNode.appendChild(searchResultsContainer);
 
-            let searchTimeout;
-            searchInput.addEventListener('keyup', () => {
-                clearTimeout(searchTimeout);
-                const query = searchInput.value.trim();
-                if (query.length < 2) { searchResultsContainer.style.display = 'none'; return; }
+        let searchTimeout;
+        searchInput.addEventListener('keyup', () => {
+            clearTimeout(searchTimeout);
+            const query = searchInput.value.trim();
+            if (query.length < 2) { searchResultsContainer.style.display = 'none'; return; }
 
-                searchTimeout = setTimeout(() => {
-                    fetch(`/api/search_coins?query=${query}`)
-                        .then(response => response.json())
-                        .then(data => {
-                            searchResultsContainer.innerHTML = '';
-                            if (data && data.length > 0) {
-                                data.slice(0, 10).forEach(coin => {
-                                    const resultItem = document.createElement('div');
-                                    resultItem.innerHTML = `<img src="${coin.thumb}" width="16" height="16" style="vertical-align: middle; margin-right: 8px;"> <strong>${coin.name}</strong> (${coin.symbol})`;
-                                    resultItem.style.padding = '10px';
-                                    resultItem.style.cursor = 'pointer';
-                                    resultItem.style.borderBottom = '1px solid #eee';
-                                    resultItem.addEventListener('click', () => {
-                                        searchInput.value = coin.id;
-                                        searchResultsContainer.style.display = 'none';
-                                    });
-                                    searchResultsContainer.appendChild(resultItem);
+            searchTimeout = setTimeout(() => {
+                fetch(`/api/search_coins?query=${query}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        searchResultsContainer.innerHTML = '';
+                        if (data && data.length > 0) {
+                            data.slice(0, 10).forEach(coin => {
+                                const resultItem = document.createElement('div');
+                                resultItem.innerHTML = `<img src="${coin.thumb}" width="16" height="16" style="vertical-align: middle; margin-right: 8px;"> <strong>${coin.name}</strong> (${coin.symbol})`;
+                                resultItem.style.padding = '10px';
+                                resultItem.style.cursor = 'pointer';
+                                resultItem.style.borderBottom = '1px solid #eee';
+                                resultItem.addEventListener('click', () => {
+                                    searchInput.value = coin.id;
+                                    searchResultsContainer.style.display = 'none';
                                 });
-                                searchResultsContainer.style.display = 'block';
-                            }
-                        });
-                }, 300);
-            });
-            
-            document.addEventListener('click', (event) => {
-                if (!searchInput.contains(event.target) && !searchResultsContainer.contains(event.target)) {
-                    searchResultsContainer.style.display = 'none';
-                }
-            });
+                                searchResultsContainer.appendChild(resultItem);
+                            });
+                            searchResultsContainer.style.display = 'block';
+                        }
+                    });
+            }, 300);
         });
 
         function openChartModal(coinId, symbol) {

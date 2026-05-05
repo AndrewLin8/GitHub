@@ -58,6 +58,43 @@
         </div>
     </div>
 
+    <div style="background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 2rem;">
+        <h3 style="margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 10px;">Exchange API Integration</h3>
+        <p style="color: #666; font-size: 0.9rem; margin-bottom: 15px;">Link your Binance Testnet account to enable portfolio importing and smart auto-trading. <strong>Your keys are securely encrypted.</strong></p>
+
+        <div style="margin-bottom: 1.5rem; padding: 1rem; border-radius: 6px; background-color: {% if has_api_secret %}#d4edda{% else %}#f8d7da{% endif %}; border: 1px solid {% if has_api_secret %}#c3e6cb{% else %}#f5c6cb{% endif %};">
+            <strong>Status:</strong> 
+            {% if has_api_secret %}
+                <span style="color: #155724;">✅ API Credentials are securely configured.</span>
+            {% else %}
+                <span style="color: #721c24;">❌ No API Credentials configured.</span>
+            {% endif %}
+        </div>
+
+        <form method="POST" action="{{ url_for('settings') }}" style="display: flex; flex-direction: column; gap: 15px;">
+            <div>
+                <label for="api_key" style="display: block; font-weight: bold; margin-bottom: 5px;">Binance Public API Key</label>
+                <input type="text" id="api_key" name="api_key" value="{{ api_key or '' }}" placeholder="Enter your public API key" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box;">
+            </div>
+            <div>
+                <label for="api_secret" style="display: block; font-weight: bold; margin-bottom: 5px;">Exchange API Secret Key</label>
+                <input type="password" id="api_secret" name="api_secret" placeholder="Enter your secret key here..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box;">
+                <small style="color: #888; display: block; margin-top: 5px;">For security reasons, we will never display your saved key.</small>
+            </div>
+            <div>
+                <button type="submit" style="background-color: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold;">
+                    {% if has_api_secret %}Update Keys{% else %}Save Keys{% endif %}
+                </button>
+            </div>
+        </form>
+        
+        {% if has_api_secret %}
+        <form method="POST" action="{{ url_for('import_exchange') }}" style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px;">
+            <button type="submit" style="background-color: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold;">📥 Import Holdings from Binance</button>
+        </form>
+        {% endif %}
+    </div>
+
     <div style="background: #fff5f5; padding: 2rem; border-radius: 12px; border: 1px solid #feb2b2; margin-bottom: 2rem;">
         <h3 style="margin-top: 0; color: #c53030;">Danger Zone</h3>
         <p style="font-size: 0.9rem; color: #742a2a;">Proceed with caution. These actions cannot be undone.</p>
